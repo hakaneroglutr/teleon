@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
@@ -7,14 +9,16 @@ module.exports = {
         root: ['.'],
         extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
         alias: {
-          '@screens': './src/screens',
+          '@screens':    './src/screens',
           '@components': './src/components',
-          '@store': './src/store',
-          '@services': './src/services',
-          '@native': './src/native',
+          '@store':      './src/store',
+          '@services':   './src/services',
+          '@native':     './src/native',
           '@navigation': './src/navigation',
-          '@theme': './src/theme',
-          '@utils': './src/utils',
+          '@theme':      './src/theme',
+          '@utils':      './src/utils',
+          '@hooks':      './src/hooks',
+          '@config':     './src/config',
         },
       },
     ],
