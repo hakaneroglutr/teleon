@@ -87,19 +87,42 @@ jobs:
 
       - name: Build APK
         run: |
-          # settings.gradle'daki node_modules yolunu düzelt
-          WORKSPACE="${{ github.workspace }}"
-          cat > android/settings.gradle << EOF
-          pluginManagement {
-              includeBuild("${WORKSPACE}/node_modules/@react-native/gradle-plugin")
-          }
-          plugins { id("com.facebook.react.settings") }
-          extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-              ex.autolinkLibrariesFromCommand()
-          }
-          rootProject.name = 'teleon'
+          python3 -c "
+          content = '''rootProject.name = 'teleon'
           include ':app'
-          EOF
+          '''
+          with open('android/settings.gradle', 'w') as f:
+              f.write(content)
+          print('settings.gradle yazildi:')
+          with open('android/settings.gradle') as f:
+              print(f.read())
+          "
+
+          python3 -c "
+          content = '''buildscript {
+              ext {
+                  buildToolsVersion = \"34.0.0\"
+                  minSdkVersion = 21
+                  compileSdkVersion = 34
+                  targetSdkVersion = 34
+                  ndkVersion = \"26.1.10909125\"
+                  kotlinVersion = \"1.9.24\"
+              }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath(\"com.android.tools.build:gradle:8.3.2\")
+                  classpath(\"com.facebook.react:react-native-gradle-plugin:0.74.1\")
+                  classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24\")
+              }
+          }
+          '''
+          with open('android/build.gradle', 'w') as f:
+              f.write(content)
+          print('build.gradle yazildi')
+          "
 
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
