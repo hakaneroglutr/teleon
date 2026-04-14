@@ -1,0 +1,13 @@
+# fastlane/metadata/android/tr-TR/full_description.txt
+Teleon, canlı TV, filmler ve dizileri tek uygulamada izlemenizi sağlayan modern bir medya oynatıcısıdır.
+
+**Özellikler:**
+- Canlı TV — Xtream Codes, M3U ve Stalker Portal desteği
+- Film ve Dizi katalogları ile kategori bazlı arama
+- TV Rehberi (EPG) — günlük ve haftalık program takvimi
+- Catch-up TV — geçmiş yayınları izle
+- Multi-Screen — aynı anda 4 kanal
+- VLC ve ExoPlayer çift motor desteği
+- Picture-in-Picture (PiP) modu
+- Arkaplan oynatma
+- Favoriler ve izleme geçmişi

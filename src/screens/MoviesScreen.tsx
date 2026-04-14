@@ -1,0 +1,198 @@
+// src/screens/MoviesScreen.tsx  (Faz 2 — tam implementasyon)
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, Image, ActivityIndicator, Dimensions,
+  ScrollView, RefreshControl,
+} from 'react-native';
+import {FlashList} from '@shopify/flash-list';
+import {useNavigation} from '@react-navigation/native';
+import {TabNavProp} from '@navigation/types';
+import {Colors} from '@theme/colors';
+import {Typography} from '@theme/typography';
+import {Spacing, Radius} from '@theme/spacing';
+import {useVodLoader} from '@hooks/useVodLoader';
+import {VodItem} from '@store/types';
+import {truncate} from '@utils/helpers';
+
+const {width} = Dimensions.get('window');
+const COLS    = 3;
+const CARD_W  = (width - Spacing.lg * 2 - Spacing.sm * (COLS - 1)) / COLS;
+const CARD_H  = CARD_W * 1.5;
+
+export default function MoviesScreen() {
+  const navigation = useNavigation<TabNavProp>();
+  const {categories, items, isLoading, error, loadCategories, loadItems} = useVodLoader();
+
+  const [selectedCat, setSelectedCat] = useState('all');
+  const [search,      setSearch]      = useState('');
+  const [refreshing,  setRefreshing]  = useState(false);
+
+  // İlk yükleme
+  useEffect(() => {
+    loadCategories();
+    loadItems();
+  }, []);
+
+  // Kategori değişince yükle
+  const handleCatSelect = useCallback(async (catId: string) => {
+    setSelectedCat(catId);
+    await loadItems(catId === 'all' ? undefined : catId);
+  }, [loadItems]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadItems(selectedCat === 'all' ? undefined : selectedCat);
+    setRefreshing(false);
+  }, [loadItems, selectedCat]);
+
+  // Arama filtresi
+  const filtered = search.trim()
+    ? items.filter((v) => v.name.toLowerCase().includes(search.toLowerCase()))
+    : items;
+
+  const renderItem = useCallback(({item}: {item: VodItem}) => (
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('VodDetail', {vodId: item.vodId, title: item.name, posterUrl: item.posterUrl || undefined})}>
+      <View style={styles.poster}>
+        {item.posterUrl ? (
+          <Image source={{uri: item.posterUrl}} style={styles.posterImg} resizeMode="cover" />
+        ) : (
+          <View style={styles.posterFallback}>
+            <Text style={styles.posterIcon}>🎬</Text>
+          </View>
+        )}
+        {item.rating && (
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingTxt}>★ {parseFloat(item.rating).toFixed(1)}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
+      {item.releaseDate && (
+        <Text style={styles.cardYear}>{item.releaseDate.slice(0, 4)}</Text>
+      )}
+    </TouchableOpacity>
+  ), [navigation]);
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Filmler</Text>
+        {items.length > 0 && <Text style={styles.count}>{items.length} film</Text>}
+      </View>
+
+      {/* Arama */}
+      <View style={styles.searchBar}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Film ara..."
+          placeholderTextColor={Colors.textTertiary}
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Text style={styles.clearBtn}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Kategori şeridi */}
+      {categories.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catScroll}
+          style={styles.catScrollWrap}>
+          {[{categoryId: 'all', categoryName: 'Tümü'}, ...categories].map((c) => (
+            <TouchableOpacity
+              key={c.categoryId}
+              style={[styles.catChip, selectedCat === c.categoryId && styles.catChipActive]}
+              onPress={() => handleCatSelect(c.categoryId)}>
+              <Text style={[styles.catChipTxt, selectedCat === c.categoryId && styles.catChipTxtActive]}>
+                {c.categoryName}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* İçerik */}
+      {isLoading && items.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.accent} size="large" />
+          <Text style={styles.loadingTxt}>Filmler yükleniyor...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyIcon}>⚠️</Text>
+          <Text style={styles.emptyTxt}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => loadItems()}>
+            <Text style={styles.retryTxt}>Tekrar Dene</Text>
+          </TouchableOpacity>
+        </View>
+      ) : filtered.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyIcon}>🎬</Text>
+          <Text style={styles.emptyTxt}>
+            {items.length === 0 ? 'Film bulunamadı' : 'Aramanızla eşleşen film yok'}
+          </Text>
+        </View>
+      ) : (
+        <FlashList
+          data={filtered}
+          keyExtractor={(item) => String(item.vodId)}
+          numColumns={COLS}
+          estimatedItemSize={CARD_H + 48}
+          renderItem={renderItem}
+          contentContainerStyle={styles.gridContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container:     {flex: 1, backgroundColor: Colors.background},
+  header:        {flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xs},
+  title:         {...Typography.h1},
+  count:         {fontSize: 12, color: Colors.textTertiary},
+
+  searchBar:     {flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, backgroundColor: Colors.surface, borderRadius: Radius.md, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1, borderColor: Colors.surfaceBorder},
+  searchIcon:    {fontSize: 13, marginRight: 6},
+  searchInput:   {flex: 1, height: 40, fontSize: 14, color: Colors.textPrimary},
+  clearBtn:      {fontSize: 13, color: Colors.textTertiary, padding: 4},
+
+  catScrollWrap: {maxHeight: 42, marginBottom: Spacing.sm},
+  catScroll:     {paddingHorizontal: Spacing.lg, gap: Spacing.xs, alignItems: 'center'},
+  catChip:       {paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.surfaceBorder},
+  catChipActive: {backgroundColor: Colors.accent, borderColor: Colors.accent},
+  catChipTxt:    {fontSize: 12, color: Colors.textSecondary, fontWeight: '500'},
+  catChipTxtActive:{color: Colors.textPrimary, fontWeight: '700'},
+
+  gridContent:   {paddingHorizontal: Spacing.lg, paddingBottom: 32},
+  card:          {width: CARD_W, marginBottom: Spacing.md, marginRight: Spacing.sm},
+  poster:        {width: CARD_W, height: CARD_H, borderRadius: Radius.sm, overflow: 'hidden', backgroundColor: Colors.surfaceElevated, marginBottom: 6, position: 'relative'},
+  posterImg:     {width: '100%', height: '100%'},
+  posterFallback:{width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center'},
+  posterIcon:    {fontSize: 32},
+  ratingBadge:   {position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4},
+  ratingTxt:     {fontSize: 10, color: Colors.gold, fontWeight: '700'},
+  cardTitle:     {fontSize: 12, color: Colors.textPrimary, lineHeight: 16, fontWeight: '500'},
+  cardYear:      {fontSize: 11, color: Colors.textTertiary, marginTop: 1},
+
+  center:        {flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm},
+  loadingTxt:    {color: Colors.textTertiary, fontSize: 13},
+  emptyIcon:     {fontSize: 36},
+  emptyTxt:      {fontSize: 13, color: Colors.textTertiary, textAlign: 'center'},
+  retryBtn:      {backgroundColor: Colors.accent, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radius.full, marginTop: Spacing.sm},
+  retryTxt:      {color: Colors.textPrimary, fontWeight: '700', fontSize: 13},
+});

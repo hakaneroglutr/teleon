@@ -1,0 +1,3 @@
+# fastlane/Appfile
+package_name "com.teleon.app"
+json_key_file "fastlane/google-play-key.json"  # Play Console API anahtarı

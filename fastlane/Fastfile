@@ -1,0 +1,89 @@
+# fastlane/Fastfile
+# Teleon Android — Otomatik build ve deployment
+
+default_platform(:android)
+
+platform :android do
+
+  # ── Debug build ──────────────────────────────────────────────────────────────
+  desc "Debug APK oluştur"
+  lane :debug do
+    gradle(
+      task:             "assemble",
+      build_type:       "Debug",
+      project_dir:      "android/",
+      print_command:    false,
+    )
+    puts "✓ Debug APK hazır: #{lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]}"
+  end
+
+  # ── Release build ─────────────────────────────────────────────────────────────
+  desc "Release APK + AAB oluştur (imzalı)"
+  lane :release do
+    # TypeScript tip kontrolü
+    sh("cd .. && npx tsc --noEmit")
+
+    gradle(
+      task:             "bundle",
+      build_type:       "Release",
+      project_dir:      "android/",
+      properties: {
+        "android.injected.signing.store.file"     => ENV["TELEON_KEYSTORE"],
+        "android.injected.signing.store.password" => ENV["TELEON_STORE_PASS"],
+        "android.injected.signing.key.alias"      => ENV["TELEON_KEY_ALIAS"],
+        "android.injected.signing.key.password"   => ENV["TELEON_KEY_PASS"],
+      },
+    )
+    puts "✓ Release AAB hazır: #{lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]}"
+  end
+
+  # ── Internal test track ───────────────────────────────────────────────────────
+  desc "Google Play — Internal Test'e yükle"
+  lane :internal do
+    release
+    upload_to_play_store(
+      track:        "internal",
+      aab:          lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      skip_upload_screenshots: true,
+      skip_upload_images:      true,
+    )
+    puts "✓ Internal track'e yüklendi"
+  end
+
+  # ── Beta ──────────────────────────────────────────────────────────────────────
+  desc "Google Play — Open Testing'e yükle"
+  lane :beta do
+    release
+    upload_to_play_store(
+      track: "beta",
+      aab:   lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+    )
+    puts "✓ Beta track'e yüklendi"
+  end
+
+  # ── Play Store metadata güncelle ──────────────────────────────────────────────
+  desc "Play Store listing metadata yükle"
+  lane :metadata do
+    upload_to_play_store(
+      skip_upload_apk:         true,
+      skip_upload_aab:         true,
+      skip_upload_screenshots: false,
+    )
+  end
+
+  # ── Versiyon bump ─────────────────────────────────────────────────────────────
+  desc "Versiyon kodunu artır"
+  lane :bump_version do
+    increment_version_code(
+      gradle_file_path: "android/app/build.gradle",
+    )
+  end
+
+  # ── Test ──────────────────────────────────────────────────────────────────────
+  desc "Unit testleri çalıştır"
+  lane :test do
+    sh("cd .. && npx jest --passWithNoTests")
+    gradle(task: "test", project_dir: "android/")
+  end
+
+end
