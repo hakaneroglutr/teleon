@@ -34,6 +34,8 @@ jobs:
       - name: Setup Gradle wrapper
         run: |
           mkdir -p android/gradle/wrapper
+
+          # gradle-wrapper.properties
           cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -43,13 +45,20 @@ jobs:
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           EOF
-          curl -sL -o /tmp/gradle-8.6-bin.zip \
-            https://services.gradle.org/distributions/gradle-8.6-bin.zip
-          unzip -q /tmp/gradle-8.6-bin.zip -d /tmp/gradle
-          /tmp/gradle/gradle-8.6/bin/gradle -p android wrapper \
-            --gradle-version=8.6 --distribution-type=bin \
-            -PnodeModulesDir="$(pwd)/node_modules"
+
+          # gradlew script - React Native resmi repo'sundan
+          curl -sL -o android/gradlew \
+            "https://raw.githubusercontent.com/facebook/react-native/v0.74.1/template/android/gradlew"
+
+          # gradle-wrapper.jar - Apache Maven repo'sundan
+          curl -sL -o android/gradle/wrapper/gradle-wrapper.jar \
+            "https://search.maven.org/remotecontent?filepath=org/gradle/gradle-wrapper/gradle-wrapper/8.6/gradle-wrapper-8.6.jar"
+
           chmod +x android/gradlew
+
+          # Doğrulama
+          echo "gradlew boyutu: $(wc -c < android/gradlew) bytes"
+          echo "wrapper.jar boyutu: $(wc -c < android/gradle/wrapper/gradle-wrapper.jar) bytes"
 
       - name: Create assets folder
         run: mkdir -p android/app/src/main/assets
