@@ -93,9 +93,7 @@ jobs:
           workspace = os.environ.get('GITHUB_WORKSPACE', os.getcwd())
           plugin_path = os.path.join(workspace, 'node_modules', '@react-native', 'gradle-plugin')
 
-          print(f"Plugin path: {plugin_path}")
-          print(f"Plugin exists: {os.path.exists(plugin_path)}")
-
+          # settings.gradle.kts olarak yaz (Kotlin DSL)
           settings_content = f"""pluginManagement {{
               includeBuild("{plugin_path}")
           }}
@@ -103,15 +101,23 @@ jobs:
           extensions.configure(com.facebook.react.ReactSettingsExtension) {{ ex ->
               ex.autolinkLibrariesFromCommand()
           }}
-          rootProject.name = 'teleon'
-          include ':app'
+          rootProject.name = "teleon"
+          include(":app")
           """
 
-          with open('android/settings.gradle', 'w') as f:
+          # Eski groovy dosyasını sil, kts yaz
+          import subprocess
+          subprocess.run(['rm', '-f', 'android/settings.gradle'])
+          
+          with open('android/settings.gradle.kts', 'w') as f:
               f.write(settings_content)
 
-          print("settings.gradle yazildi:")
-          print(open('android/settings.gradle').read())
+          print("settings.gradle.kts yazildi:")
+          print(open('android/settings.gradle.kts').read())
+          
+          # Plugin klasöründe ne var kontrol et
+          for f in os.listdir(plugin_path):
+              print(f"  {f}")
           PYEOF
 
           cd android
