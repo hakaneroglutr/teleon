@@ -75,10 +75,13 @@ jobs:
             --assets-dest android/app/src/main/res
 
       - name: Build APK
-        run: cd android && ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
           ANDROID_HOME: /usr/local/lib/android/sdk
+          NODE_MODULES_DIR: ${{ github.workspace }}/node_modules
 
       - name: Upload APK
         if: success()
