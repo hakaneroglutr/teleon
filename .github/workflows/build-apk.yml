@@ -87,42 +87,32 @@ jobs:
 
       - name: Build APK
         run: |
-          python3 -c "
-          content = '''rootProject.name = 'teleon'
-          include ':app'
-          '''
-          with open('android/settings.gradle', 'w') as f:
-              f.write(content)
-          print('settings.gradle yazildi:')
-          with open('android/settings.gradle') as f:
-              print(f.read())
-          "
+          python3 << 'PYEOF'
+          import os
 
-          python3 -c "
-          content = '''buildscript {
-              ext {
-                  buildToolsVersion = \"34.0.0\"
-                  minSdkVersion = 21
-                  compileSdkVersion = 34
-                  targetSdkVersion = 34
-                  ndkVersion = \"26.1.10909125\"
-                  kotlinVersion = \"1.9.24\"
-              }
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath(\"com.android.tools.build:gradle:8.3.2\")
-                  classpath(\"com.facebook.react:react-native-gradle-plugin:0.74.1\")
-                  classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24\")
-              }
-          }
-          '''
-          with open('android/build.gradle', 'w') as f:
-              f.write(content)
-          print('build.gradle yazildi')
-          "
+          workspace = os.environ.get('GITHUB_WORKSPACE', os.getcwd())
+          plugin_path = os.path.join(workspace, 'node_modules', '@react-native', 'gradle-plugin')
+
+          print(f"Plugin path: {plugin_path}")
+          print(f"Plugin exists: {os.path.exists(plugin_path)}")
+
+          settings_content = f"""pluginManagement {{
+              includeBuild("{plugin_path}")
+          }}
+          plugins {{ id("com.facebook.react.settings") }}
+          extensions.configure(com.facebook.react.ReactSettingsExtension) {{ ex ->
+              ex.autolinkLibrariesFromCommand()
+          }}
+          rootProject.name = 'teleon'
+          include ':app'
+          """
+
+          with open('android/settings.gradle', 'w') as f:
+              f.write(settings_content)
+
+          print("settings.gradle yazildi:")
+          print(open('android/settings.gradle').read())
+          PYEOF
 
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
