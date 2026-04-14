@@ -46,6 +46,8 @@ jobs:
       - name: Setup Gradle wrapper
         run: |
           mkdir -p android/gradle/wrapper
+
+          # gradle-wrapper.properties
           cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -55,11 +57,15 @@ jobs:
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           EOF
-          curl -L -o android/gradlew https://raw.githubusercontent.com/gradle/gradle/v8.6.0/gradlew
+
+          # gradlew script
+          curl -sL -o android/gradlew \
+            https://raw.githubusercontent.com/nicktindall/cyclon.p2p/master/gradlew
           chmod +x android/gradlew
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
+          # gradle-wrapper.jar (zorunlu)
+          curl -sL -o android/gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/nicktindall/cyclon.p2p/master/gradle/wrapper/gradle-wrapper.jar
             
       - name: Build APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
