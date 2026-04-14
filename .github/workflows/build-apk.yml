@@ -76,12 +76,25 @@ jobs:
 
       - name: Build APK
         run: |
+          # settings.gradle'daki node_modules yolunu düzelt
+          WORKSPACE="${{ github.workspace }}"
+          cat > android/settings.gradle << EOF
+          pluginManagement {
+              includeBuild("${WORKSPACE}/node_modules/@react-native/gradle-plugin")
+          }
+          plugins { id("com.facebook.react.settings") }
+          extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+              ex.autolinkLibrariesFromCommand()
+          }
+          rootProject.name = 'teleon'
+          include ':app'
+          EOF
+
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
           ANDROID_HOME: /usr/local/lib/android/sdk
-          NODE_MODULES_DIR: ${{ github.workspace }}/node_modules
 
       - name: Upload APK
         if: success()
