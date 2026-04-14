@@ -43,6 +43,17 @@ jobs:
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
+      - name: Generate gradlew if missing
+        run: |
+          if [ ! -f android/gradlew ]; then
+            cd android
+            gradle wrapper --gradle-version 8.6
+            cd ..
+          fi
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+            
       - name: Build APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
         env:
