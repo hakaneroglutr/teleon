@@ -46,19 +46,30 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
 
-          # gradlew script - React Native resmi repo'sundan
-          curl -sL -o android/gradlew \
-            "https://raw.githubusercontent.com/facebook/react-native/v0.74.1/template/android/gradlew"
-
-          # gradle-wrapper.jar - Apache Maven repo'sundan
-          curl -sL -o android/gradle/wrapper/gradle-wrapper.jar \
-            "https://search.maven.org/remotecontent?filepath=org/gradle/gradle-wrapper/gradle-wrapper/8.6/gradle-wrapper-8.6.jar"
-
+          # gradlew script'i sıfırdan oluştur
+          cat > android/gradlew << 'GRADLEW'
+          #!/bin/sh
+          APP_NAME="Gradle"
+          APP_BASE_NAME=$(basename "$0")
+          APP_HOME=$(cd "$(dirname "$0")" && pwd -P)
+          DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+          JAVA_EXE=java
+          MAX_FD=maximum
+          CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+          exec "$JAVA_EXE" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
+            "-Dorg.gradle.appname=$APP_BASE_NAME" \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain "$@"
+          GRADLEW
           chmod +x android/gradlew
 
-          # Doğrulama
-          echo "gradlew boyutu: $(wc -c < android/gradlew) bytes"
-          echo "wrapper.jar boyutu: $(wc -c < android/gradle/wrapper/gradle-wrapper.jar) bytes"
+          # gradle-wrapper.jar - GitHub Gradle releases'ten
+          curl -sL -o android/gradle/wrapper/gradle-wrapper.jar \
+            "https://github.com/gradle/gradle/raw/v8.6.0/gradle/wrapper/gradle-wrapper.jar"
+
+          echo "=== Dosya boyutları ==="
+          ls -la android/gradlew
+          ls -la android/gradle/wrapper/
 
       - name: Create assets folder
         run: mkdir -p android/app/src/main/assets
