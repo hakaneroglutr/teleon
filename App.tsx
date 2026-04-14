@@ -1,12 +1,11 @@
-// App.tsx  (Faz 3)
 import React from 'react';
 import {StatusBar} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import AppNavigator from '@navigation/AppNavigator';
-import {Colors} from '@theme/colors';
-import {useAppInit} from '@hooks/useAppInit';
+import AppNavigator from './src/navigation/AppNavigator';
+import {Colors} from './src/theme/colors';
+import {useAppInit} from './src/hooks/useAppInit';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,7 +14,7 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  useAppInit(); // SQLite önbellek → arka plan yenileme
+  useAppInit();
   return <AppNavigator />;
 }
 
