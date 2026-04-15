@@ -88,39 +88,23 @@ jobs:
       - name: Build APK
         run: |
           PLUGIN_PATH="${GITHUB_WORKSPACE}/node_modules/@react-native/gradle-plugin"
-
-          # Plugin'i derle ve local maven'e publish et
           cd "$PLUGIN_PATH"
           chmod +x gradlew
-
-          # Version'ı bul
-          VERSION=$(grep -m1 "^version" build.gradle.kts | sed 's/version = "\(.*\)"/\1/' | tr -d ' ')
-          echo "Plugin version: $VERSION"
-
-          ./gradlew publishToMavenLocal --no-daemon -x test 2>&1 | tail -5
+          ./gradlew publishToMavenLocal --no-daemon -x test 2>&1 | tail -3
           cd "${GITHUB_WORKSPACE}"
 
-          # Local maven'de var mı?
-          find ~/.m2 -name "*.jar" -path "*react-native*" 2>/dev/null | head -5
-
           python3 << PYEOF
-          import os, subprocess, glob
+          import os, subprocess, re, glob
 
           workspace = os.environ['GITHUB_WORKSPACE']
           home = os.environ['HOME']
           plugin_path = f"{workspace}/node_modules/@react-native/gradle-plugin"
 
-          # Version bul
           with open(f'{plugin_path}/build.gradle.kts') as f:
               content = f.read()
-          import re
           m = re.search(r'version\s*=\s*"([^"]+)"', content)
           version = m.group(1) if m else "0.74.1"
           print(f"Version: {version}")
-
-          # JAR var mı?
-          jars = glob.glob(f"{home}/.m2/**/react-native-gradle-plugin*.jar", recursive=True)
-          print(f"JARs: {jars}")
 
           settings = f"""pluginManagement {{
               repositories {{
@@ -138,11 +122,14 @@ jobs:
           subprocess.run(['rm', '-f', 'android/settings.gradle', 'android/settings.gradle.kts'])
           with open('android/settings.gradle.kts', 'w') as f:
               f.write(settings)
-          print("Yazildi")
+          print("Yazildi OK")
           PYEOF
 
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | head -60
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+          echo "=== APK aranıyor ==="
+          find . -name "*.apk" 2>/dev/null
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
           ANDROID_HOME: /usr/local/lib/android/sdk
