@@ -89,34 +89,52 @@ jobs:
         run: |
           PLUGIN_PATH="${GITHUB_WORKSPACE}/node_modules/@react-native/gradle-plugin"
 
-          # Önce plugin'i derle
-          echo "Plugin derleniyor..."
+          # Plugin'i derle
           cd "$PLUGIN_PATH"
           chmod +x gradlew
-          ./gradlew build --no-daemon -x test 2>&1 | tail -5
+          ./gradlew publishToMavenLocal --no-daemon -x test 2>&1 | tail -10
           cd "${GITHUB_WORKSPACE}"
 
-          # settings.gradle.kts yaz
-          python3 << PYEOF
-          import os
+          # Local maven'deki JAR'ı bul
+          echo "=== Local Maven RN plugin ==="
+          find ~/.m2 -name "react-native-gradle-plugin*.jar" 2>/dev/null | head -5
+          find ~/.m2 -path "*/react-native/gradle-plugin*" 2>/dev/null | head -10
+
+          # settings.gradle.kts - local maven ile
+          python3 << 'PYEOF'
+          import os, subprocess
+
           workspace = os.environ['GITHUB_WORKSPACE']
+          home = os.environ['HOME']
           plugin_path = f"{workspace}/node_modules/@react-native/gradle-plugin"
 
+          # Plugin version bul
+          result = subprocess.run(
+              ['grep', 'version', f'{plugin_path}/build.gradle.kts'],
+              capture_output=True, text=True
+          )
+          print("build.gradle.kts version line:", result.stdout[:200])
+
           content = f"""pluginManagement {{
-              includeBuild("{plugin_path}")
+              repositories {{
+                  mavenLocal()
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }}
           }}
-          plugins {{ id("com.facebook.react.settings") }}
+          plugins {{ id("com.facebook.react.settings") version "0.74.1" }}
           extensions.configure(com.facebook.react.ReactSettingsExtension) {{ ex ->
               ex.autolinkLibrariesFromCommand()
           }}
           rootProject.name = "teleon"
           include(":app")
           """
-          import subprocess
+
           subprocess.run(['rm', '-f', 'android/settings.gradle'])
           with open('android/settings.gradle.kts', 'w') as f:
               f.write(content)
-          print("Yazildi OK")
+          print("Yazildi:", open('android/settings.gradle.kts').read())
           PYEOF
 
           cd android
