@@ -87,14 +87,22 @@ jobs:
 
       - name: Build APK
         run: |
-          python3 << 'PYEOF'
+          PLUGIN_PATH="${GITHUB_WORKSPACE}/node_modules/@react-native/gradle-plugin"
+
+          # Önce plugin'i derle
+          echo "Plugin derleniyor..."
+          cd "$PLUGIN_PATH"
+          chmod +x gradlew
+          ./gradlew build --no-daemon -x test 2>&1 | tail -5
+          cd "${GITHUB_WORKSPACE}"
+
+          # settings.gradle.kts yaz
+          python3 << PYEOF
           import os
+          workspace = os.environ['GITHUB_WORKSPACE']
+          plugin_path = f"{workspace}/node_modules/@react-native/gradle-plugin"
 
-          workspace = os.environ.get('GITHUB_WORKSPACE', os.getcwd())
-          plugin_path = os.path.join(workspace, 'node_modules', '@react-native', 'gradle-plugin')
-
-          # settings.gradle.kts olarak yaz (Kotlin DSL)
-          settings_content = f"""pluginManagement {{
+          content = f"""pluginManagement {{
               includeBuild("{plugin_path}")
           }}
           plugins {{ id("com.facebook.react.settings") }}
@@ -104,20 +112,11 @@ jobs:
           rootProject.name = "teleon"
           include(":app")
           """
-
-          # Eski groovy dosyasını sil, kts yaz
           import subprocess
           subprocess.run(['rm', '-f', 'android/settings.gradle'])
-          
           with open('android/settings.gradle.kts', 'w') as f:
-              f.write(settings_content)
-
-          print("settings.gradle.kts yazildi:")
-          print(open('android/settings.gradle.kts').read())
-          
-          # Plugin klasöründe ne var kontrol et
-          for f in os.listdir(plugin_path):
-              print(f"  {f}")
+              f.write(content)
+          print("Yazildi OK")
           PYEOF
 
           cd android
