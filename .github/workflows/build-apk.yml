@@ -88,33 +88,31 @@ jobs:
       - name: Build APK
         run: |
           PLUGIN_PATH="${GITHUB_WORKSPACE}/node_modules/@react-native/gradle-plugin"
+
+          # Plugin'i derle
           cd "$PLUGIN_PATH"
           chmod +x gradlew
-          ./gradlew publishToMavenLocal --no-daemon -x test 2>&1 | tail -3
+          ./gradlew assemble --no-daemon -x test 2>&1 | tail -3
           cd "${GITHUB_WORKSPACE}"
 
+          # settings.gradle.kts - includeBuild ile, version olmadan
           python3 << PYEOF
-          import os, subprocess, re, glob
+          import os, subprocess
 
           workspace = os.environ['GITHUB_WORKSPACE']
-          home = os.environ['HOME']
           plugin_path = f"{workspace}/node_modules/@react-native/gradle-plugin"
 
-          with open(f'{plugin_path}/build.gradle.kts') as f:
-              content = f.read()
-          m = re.search(r'version\s*=\s*"([^"]+)"', content)
-          version = m.group(1) if m else "0.74.1"
-          print(f"Version: {version}")
-
           settings = f"""pluginManagement {{
+              includeBuild("{plugin_path}")
               repositories {{
-                  mavenLocal()
                   google()
                   mavenCentral()
                   gradlePluginPortal()
               }}
           }}
-          plugins {{ id("com.facebook.react.settings") version "{version}" }}
+          plugins {{
+              id("com.facebook.react.settings")
+          }}
           rootProject.name = "teleon"
           include(":app")
           """
@@ -122,13 +120,13 @@ jobs:
           subprocess.run(['rm', '-f', 'android/settings.gradle', 'android/settings.gradle.kts'])
           with open('android/settings.gradle.kts', 'w') as f:
               f.write(settings)
-          print("Yazildi OK")
+          print("OK:", open('android/settings.gradle.kts').read()[:200])
           PYEOF
 
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-          echo "=== APK aranıyor ==="
+          echo "=== APK ara ==="
           find . -name "*.apk" 2>/dev/null
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
